@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+    <style>
+        :root {
+            --blue: #2463eb;
+            --blue-dark: #1e4fbd;
+            --border: #d7dbe2;
+            --text: #26313f;
+            --muted: #6b7280;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #ffffff;
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .page {
+            width: 100%;
+            padding: 40px 16px 24px;
+        }
+
+        h1 {
+            margin: 0 0 40px;
+            color: #233f99;
+            font-size: 48px;
+            line-height: 1.1;
+            text-align: center;
+        }
+
+        .registration-form {
+            display: grid;
+            gap: 40px;
+        }
+
+        .field {
+            width: 100%;
+            height: 56px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 0 16px;
+            background: #fff;
+            color: var(--text);
+            font-size: 18px;
+            outline: none;
+        }
+
+        .field::placeholder {
+            color: #70798a;
+            opacity: 1;
+        }
+
+        .field:focus {
+            border-color: #86a6ef;
+            box-shadow: 0 0 0 3px rgba(36, 99, 235, 0.10);
+        }
+
+        .save-button {
+            width: 104px;
+            height: 54px;
+            border: 0;
+            border-radius: 7px;
+            background: var(--blue);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background: var(--blue-dark);
+        }
+
+        .save-button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
+        .divider {
+            height: 1px;
+            margin: 16px 0 24px;
+            background: #cfdae8;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            border: 1px solid #dfe3ea;
+            text-align: left;
+        }
+
+        th {
+            height: 62px;
+            padding: 0 16px;
+            background: #2463eb;
+            color: #fff;
+            font-size: 20px;
+        }
+
+        td {
+            height: 54px;
+            padding: 0 16px;
+            background: #fff;
+            font-size: 16px;
+        }
+
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 12%;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2),
+        th:nth-child(3),
+        td:nth-child(3),
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 22%;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            width: 22%;
+        }
+
+        .delete-button {
+            border: 0;
+            border-radius: 5px;
+            background: #dc3545;
+            color: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .delete-button:hover {
+            background: #b52a37;
+        }
+
+        .empty-row td {
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .status {
+            min-height: 20px;
+            margin: 8px 0 0;
+            color: #b42318;
+            font-size: 14px;
+        }
+
+        @media (max-width: 700px) {
+            .page {
+                padding: 28px 12px;
+            }
+
+            h1 {
+                margin-bottom: 28px;
+                font-size: 34px;
+            }
+
+            .registration-form {
+                gap: 18px;
+            }
+
+            th,
+            td {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <h1>Student Registration</h1>
+
+        <form id="studentForm" class="registration-form">
+            <input class="field" id="name" name="name" type="text" placeholder="Name" required>
+            <input class="field" id="email" name="email" type="email" placeholder="Email" required>
+            <input class="field" id="course" name="course" type="text" placeholder="Course" required>
+            <button class="save-button" id="saveButton" type="submit">Save</button>
+        </form>
+        <p class="status" id="status" role="status"></p>
+
+        <div class="divider"></div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Course</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentRows"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById("studentForm");
+        const rows = document.getElementById("studentRows");
+        const status = document.getElementById("status");
+        const saveButton = document.getElementById("saveButton");
+
+        function setStatus(message, isError = false) {
+            status.textContent = message;
+            status.style.color = isError ? "#b42318" : "#18794e";
+        }
+
+        async function loadStudents() {
+            try {
+                const response = await fetch("/students");
+                if (!response.ok) throw new Error("Unable to load students");
+
+                const students = await response.json();
+                rows.replaceChildren();
+
+                if (students.length === 0) {
+                    const emptyRow = document.createElement("tr");
+                    emptyRow.className = "empty-row";
+                    const emptyCell = document.createElement("td");
+                    emptyCell.colSpan = 5;
+                    emptyCell.textContent = "No students registered";
+                    emptyRow.appendChild(emptyCell);
+                    rows.appendChild(emptyRow);
+                    return;
+                }
+
+                students.forEach((student) => {
+                    const row = document.createElement("tr");
+
+                    ["id", "name", "email", "course"].forEach((key) => {
+                        const cell = document.createElement("td");
+                        cell.textContent = student[key] ?? "";
+                        row.appendChild(cell);
+                    });
+
+                    const actionCell = document.createElement("td");
+                    const deleteButton = document.createElement("button");
+                    deleteButton.type = "button";
+                    deleteButton.className = "delete-button";
+                    deleteButton.textContent = "Delete";
+                    deleteButton.addEventListener("click", () => deleteStudent(student.id));
+                    actionCell.appendChild(deleteButton);
+                    row.appendChild(actionCell);
+                    rows.appendChild(row);
+                });
+            } catch (error) {
+                setStatus(error.message, true);
+            }
+        }
+
+        async function deleteStudent(id) {
+            try {
+                const response = await fetch("/students/" + id, { method: "DELETE" });
+                if (!response.ok) throw new Error("Unable to delete student");
+                setStatus("Student deleted.");
+                await loadStudents();
+            } catch (error) {
+                setStatus(error.message, true);
+            }
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            saveButton.disabled = true;
+            setStatus("");
+
+            const student = {
+                name: document.getElementById("name").value.trim(),
+                email: document.getElementById("email").value.trim(),
+                course: document.getElementById("course").value.trim()
+            };
+
+            try {
+                const response = await fetch("/students", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(student)
+                });
+                if (!response.ok) throw new Error("Unable to save student");
+
+                form.reset();
+                setStatus("Student saved successfully.");
+                await loadStudents();
+            } catch (error) {
+                setStatus(error.message, true);
+            } finally {
+                saveButton.disabled = false;
+            }
+        });
+
+        loadStudents();
+    </script>
+</body>
+</html>
