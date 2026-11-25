@@ -3,6 +3,7 @@ package com.example.student.entity;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "students")
 public class Student {
 
     @Id
@@ -10,9 +11,7 @@ public class Student {
     private Long id;
 
     private String name;
-
     private String email;
-
     private String course;
 
     public Long getId() {
